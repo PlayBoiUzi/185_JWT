@@ -59,8 +59,36 @@ async function createKomik(req, res) {
   }
 }
 
+async function updateKomik(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) {
+    return res.status(400).json({ error: 'ID komik tidak valid.' });
+  }
+
+  const fields = readKomikFields(req.body);
+  if (!fields) {
+    return res.status(400).json({
+      error: 'Judul, deskripsi, dan penulis wajib diisi.'
+    });
+  }
+
+  try {
+    const komik = await db.Komik.findByPk(id);
+    if (!komik) {
+      return res.status(404).json({ error: 'Komik tidak ditemukan.' });
+    }
+
+    await komik.update(fields);
+    return res.status(200).json(komik);
+  } catch (error) {
+    console.error('Gagal memperbarui komik:', error);
+    return res.status(500).json({ error: 'Gagal memperbarui komik.' });
+  }
+}
+
 module.exports = {
   getAllKomik,
   getKomikById,
-  createKomik
+  createKomik,
+  updateKomik
 };
