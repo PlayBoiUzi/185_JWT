@@ -2,6 +2,17 @@
 
 const db = require('../models');
 
+function readKomikFields(body) {
+  const fields = ['title', 'description', 'author'];
+  if (!body || fields.some(field => (
+    typeof body[field] !== 'string' || body[field].trim() === ''
+  ))) {
+    return null;
+  }
+
+  return Object.fromEntries(fields.map(field => [field, body[field].trim()]));
+}
+
 async function getAllKomik(req, res) {
   try {
     const komik = await db.Komik.findAll();
@@ -31,7 +42,25 @@ async function getKomikById(req, res) {
   }
 }
 
+async function createKomik(req, res) {
+  const fields = readKomikFields(req.body);
+  if (!fields) {
+    return res.status(400).json({
+      error: 'Judul, deskripsi, dan penulis wajib diisi.'
+    });
+  }
+
+  try {
+    const newKomik = await db.Komik.create(fields);
+    return res.status(201).json(newKomik);
+  } catch (error) {
+    console.error('Gagal membuat komik:', error);
+    return res.status(500).json({ error: 'Gagal membuat komik.' });
+  }
+}
+
 module.exports = {
   getAllKomik,
-  getKomikById
+  getKomikById,
+  createKomik
 };
