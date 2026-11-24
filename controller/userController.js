@@ -1,6 +1,7 @@
 'use strict';
 
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 const db = require('../models');
 
 async function register(req, res) {
@@ -48,4 +49,47 @@ async function register(req, res) {
   }
 }
 
-module.exports = { register };
+async function login(req, res) {
+  const { email, password } = req.body || {};
+  if (typeof email !== 'string' || typeof password !== 'string' ||
+      email.trim() === '' || password.length === 0) {
+    return res.status(400).json({
+      message: 'Email dan kata sandi wajib diisi.'
+    });
+  }
+
+  const secret = process.env.JWT_SECRET;
+  const expiresIn = process.env.JWT_EXPIRES;
+  if (!secret || !expiresIn) {
+    console.error('JWT_SECRET dan JWT_EXPIRES harus dikonfigurasi.');
+    return res.status(500).json({ message: 'Konfigurasi autentikasi belum lengkap.' });
+  }
+
+  try {
+    const user = await db.User.findOne({
+      where: { email: email.trim().toLowerCase() }
+    });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return res.status(401).json({ message: 'Email atau kata sandi salah.' });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      secret,
+      { expiresIn }
+    );
+
+    return res.status(200).json({
+      message: 'Login berhasil.',
+      token
+    });
+  } catch (error) {
+    console.error('Gagal login:', error);
+    return res.status(500).json({ message: 'Login gagal.' });
+  }
+}
+
+module.exports = {
+  register,
+  login
+};
