@@ -86,9 +86,30 @@ async function updateKomik(req, res) {
   }
 }
 
+async function deleteKomik(req, res) {
+  const id = Number(req.params.id);
+  if (!Number.isSafeInteger(id) || id < 1) {
+    return res.status(400).json({ error: 'ID komik tidak valid.' });
+  }
+
+  try {
+    const komik = await db.Komik.findByPk(id);
+    if (!komik) {
+      return res.status(404).json({ error: 'Komik tidak ditemukan.' });
+    }
+
+    await komik.destroy();
+    return res.status(200).json({ message: 'Komik berhasil dihapus.' });
+  } catch (error) {
+    console.error('Gagal menghapus komik:', error);
+    return res.status(500).json({ error: 'Gagal menghapus komik.' });
+  }
+}
+
 module.exports = {
   getAllKomik,
   getKomikById,
   createKomik,
-  updateKomik
+  updateKomik,
+  deleteKomik
 };
